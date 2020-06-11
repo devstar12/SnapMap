@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "395077247529",
+    "firebase_url": "https://snapmap-2b6d0.firebaseio.com",
+    "project_id": "snapmap-2b6d0",
+    "storage_bucket": "snapmap-2b6d0.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:395077247529:android:61882c1ba497f729427238",
+        "android_client_info": {
+          "package_name": "com.snapmap.test"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "395077247529-n9b0u7gjeeluvidlh32jbu7avu75q0ib.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBbypE6RZqwXD1wPZaM9FMUNW0CarJ3NsQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "395077247529-n9b0u7gjeeluvidlh32jbu7avu75q0ib.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
