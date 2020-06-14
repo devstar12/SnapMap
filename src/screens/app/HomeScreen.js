@@ -24,24 +24,28 @@ const HomeScreen = ({ navigation, route }) => {
   const [userPos, setUserPos] = useState({ place: '', coord: [2.35183, 48.85658] });
   const [centerCoordinate, setCenterCoordinate] = useState({ place: '', coord: [2.35183, 48.85658] });
 
-  const [markers, setMarkers] = useState([]);
-  const [annotations, setAnnotations] = useState([]);
-
-  useEffect(() => {  
-    const unsubscribe = navigation.addListener('focus', () => {      
+  const [images, setImages] = useState();
+  const [featureCollection, setFeatureCollection] = useState({
+    "type": "FeatureCollection",
+    "features": [
+    ]
+  });
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
       // User Position
       const bootstrapAsync = async (coords) => {
         console.log(userPos);
         // Getting Pictures from Firestore 
         firestore().collection('Pictures')
-        .get()
-        .then(querySnapshot => {
-          let items = [];
-          querySnapshot.forEach(documentSnapshot => {
-            items.push(documentSnapshot.data());
+          .get()
+          .then(querySnapshot => {
+            let items = [];
+            querySnapshot.forEach(documentSnapshot => {
+              items.push(documentSnapshot.data());
+            });
+            updateMarkers(items);
+            setLoading(false);
           });
-          setMarkers(items);
-        });
       };
       setLoading(true);
       Geolocation.getCurrentPosition(info => {
@@ -54,7 +58,6 @@ const HomeScreen = ({ navigation, route }) => {
             place: '',
             coord: [info.coords.longitude, info.coords.latitude]
           });
-          bootstrapAsync(info.coords)
           // Get User Region
           let baseURL = Constant.MAPBOX_BASEURL;
           let searchurl = baseURL + info.coords.longitude + ',' + info.coords.latitude + '.json?types=region&access_token=' + Constant.ACCESS_TOKEN;
@@ -70,17 +73,15 @@ const HomeScreen = ({ navigation, route }) => {
                 coord: [info.coords.longitude, info.coords.latitude],
                 place: locationData.place_name
               });
-              setLoading(false);
+              bootstrapAsync(info.coords)
             })
             .catch(error => {
               setLoading(false);
             });
-
         }
         else {
           setLoading(false);
         }
-
       }
       );
 
@@ -89,33 +90,30 @@ const HomeScreen = ({ navigation, route }) => {
 
   }, [navigation]);
 
-  const renderAnnotations = () => {
-    const items = [];
-    for (let i = 0; i < markers.length; i++) {
-      const marker = markers[i];
-      const coordinate = marker.coord;
-
-      const title = marker.place;
-      const id = `pointAnnotation${i}`;
-      const picture = marker.picture;
-      
-      items.push(
-        <MapboxGL.PointAnnotation
-          key={id}
-          id={id}
-          coordinate={coordinate}
-          title={title}>
-          <Image
-            source={{ uri: picture }}
-            style={{ flex: 1, width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: '#fff' }}
-
-          />
-          <MapboxGL.Callout title={title} />
-        </MapboxGL.PointAnnotation>,
+  const updateMarkers = (items) => {
+    const markers = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const coordinate = item.coord;
+      const title = item.place;
+      const picture = item.picture;
+      markers.push(
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": coordinate
+          },
+          "properties": {
+            markerImage: picture,
+          }
+        }
       );
-
     }
-    return items;
+    setFeatureCollection({
+      "type": "FeatureCollection",
+      "features": markers
+    })
   }
   const onPlacePressed = (item) => {
     handleSearch('');
@@ -158,6 +156,9 @@ const HomeScreen = ({ navigation, route }) => {
         </View>
       </TouchableOpacity>
     )
+  }
+  const onDidFinishLoadingMap = () => {
+    console.log("Map loaded.......");
   }
   const saveCoordinateData = (item) => {
     AsyncStorage.setItem('POS_DATA', JSON.stringify(item));
@@ -210,13 +211,36 @@ const HomeScreen = ({ navigation, route }) => {
         }
         <MapboxGL.MapView
           style={styles.mapStyle}
+          onDidFinishLoadingMap={onDidFinishLoadingMap}
           showUserLocation={true}>
           <MapboxGL.Camera
             zoomLevel={2}
             animationMode={'flyTo'}
             centerCoordinate={centerCoordinate.coord} />
           <MapboxGL.UserLocation />
-          {markers.length == 0 ? null : renderAnnotations()}
+          <MapboxGL.Images
+            nativeAssetImages={['pin']}
+            images={images}
+            onImageMissing={url => {
+              //console.log("on image missing2", url);
+              setImages({
+                ...images,
+                [url]: {uri: url},
+              });
+              //console.info(images);
+            }}
+          />
+          <MapboxGL.ShapeSource
+            id="shapeSource"
+            shape={featureCollection}>
+            <MapboxGL.SymbolLayer 
+              id="symbolLayer"
+              style={{
+                iconImage: ['get', 'markerImage'],
+                iconSize: 0.03,
+                iconAllowOverlap: true,
+            }} />
+          </MapboxGL.ShapeSource>
         </MapboxGL.MapView>
 
         <View
@@ -283,8 +307,16 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   annotationContainer: {
-    flex: 1
-  }
+    width: 46,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    borderRadius: 23,
+    borderWidth: 4,
+    borderColor: 'rgba(0, 0, 0, 0.45)',
+    overflow: 'hidden',
+  },
 });
 
 export default HomeScreen;
